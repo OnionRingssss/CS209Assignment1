@@ -1,11 +1,13 @@
 import org.w3c.dom.css.CSSStyleDeclaration;
 
 import javax.lang.model.element.NestingKind;
+import java.awt.*;
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
+import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -52,14 +54,6 @@ public class OnlineCoursesAnalyzer {
 
     //1
     public Map<String, Integer> getPtcpCountByInst() {
-//        Map<String,Long> answer = courses.stream()
-//                .sorted((o1, o2) -> o1.institution.compareTo(o2.institution))
-//                .collect(Collectors.groupingBy(course -> course.institution,Collectors.counting()));
-//
-//        Map<String,Integer> answer1 = new HashMap<>();
-//        for(Map.Entry<String,Long> entry:answer.entrySet()){
-//            answer1.put(entry.getKey(),(entry.getValue().intValue()));
-//        }
         Map<String, Integer> helper = new HashMap<>();
         for (Course a : courses) {
             if (helper.containsKey(a.institution)) {
@@ -71,22 +65,13 @@ public class OnlineCoursesAnalyzer {
         Map<String, Integer> answer = new LinkedHashMap<>();
         helper.entrySet().stream()
                 .sorted((o1, o2) -> o1.getKey().compareTo(o2.getKey()))
-                .forEach(stringIntegerEntry -> answer.put(stringIntegerEntry.getKey(),stringIntegerEntry.getValue()));
+                .forEach(stringIntegerEntry -> answer.put(stringIntegerEntry.getKey(), stringIntegerEntry.getValue()));
         return answer;
 
     }
 
     //2
     public Map<String, Integer> getPtcpCountByInstAndSubject() {
-//        Map<String, Map<String,Long>>helper = courses.stream()
-//                .collect(Collectors.groupingBy(course -> course.institution,
-//                        Collectors.groupingBy(course -> course.subject,Collectors.counting())));
-//        Map<String, Integer> answer = new HashMap<>();
-//        for(Map.Entry<String,Map<String, Long>> entry1:helper.entrySet()){
-//            for(Map.Entry<String,Long> entry2: entry1.getValue().entrySet()){
-//                answer.put(entry2.getKey(), entry2.getValue().intValue());
-//            }
-//        }
         Map<String, Integer> helper = new HashMap<>();
         for (Course a : courses) {
             String string = a.institution + "-" + a.subject;
@@ -110,12 +95,96 @@ public class OnlineCoursesAnalyzer {
 
     //3
     public Map<String, List<List<String>>> getCourseListOfInstructor() {
-        return null;
+        Map<String, List<List<String>>> answer = new LinkedHashMap<>();
+
+        courses.forEach(course -> {
+            String[] singleIns = course.instructors.split(",");
+            if (singleIns.length == 0) {
+                return;
+            }
+            for (String string : singleIns) {
+                string = string.trim();
+                if (answer.containsKey(string)) {
+                    if (singleIns.length == 1 && !answer.get(string).get(0).contains(course.title)) {
+                        answer.get(string).get(0).add(course.title);
+                    } else if (singleIns.length != 1 && !answer.get(string).get(1).contains(course.title)) {
+                        answer.get(string).get(1).add(course.title);
+                    }
+                } else {
+                    List<List<String>> helper = new ArrayList<>();
+                    List<String> ls1 = new ArrayList<>(), ls2 = new ArrayList<>();
+                    helper.add(ls1);
+                    helper.add(ls2);
+                    if (singleIns.length == 1) {
+                        helper.get(0).add(course.title);
+                    } else {
+                        helper.get(1).add(course.title);
+                    }
+                    answer.put(string, helper);
+                }
+            }
+        });
+
+
+        answer.forEach((key, value) -> Collections.sort(value.get(0)));
+        answer.forEach((key, value) -> Collections.sort(value.get(1)));
+        return answer;
     }
 
     //4
     public List<String> getCourses(int topK, String by) {
-        return null;
+        List<String> answer = new ArrayList<>();
+        switch (by) {
+            case "hours":
+                Map<String, Double> title_hours = new HashMap<>();
+                for (Course course : courses) {
+                    if (title_hours.containsKey(course.title)) {
+                        if(course.totalHours>title_hours.get(course.title)){
+                            title_hours.put(course.title,course.totalHours);
+                        }
+                    } else {
+                        title_hours.put(course.title, course.totalHours);
+                    }
+                }
+
+                title_hours.entrySet().stream()
+                        .sorted((o1, o2) -> {
+                            int a = -o1.getValue().compareTo(o2.getValue());
+                            if (a == 0) {
+                                a = o1.getKey().compareTo(o2.getKey());
+                            }
+                            return a;
+                        })
+                        .limit(topK)
+                        .forEach(stringDoubleEntry -> answer.add(stringDoubleEntry.getKey()));
+                break;
+            case "participants":
+                Map<String, Integer> title_pars = new HashMap<>();
+                for (Course course : courses) {
+                    if (title_pars.containsKey(course.title)) {
+                        if(course.participants>title_pars.get(course.title)){
+                            title_pars.put(course.title,course.participants);
+                        }
+                    } else {
+                        title_pars.put(course.title, course.participants);
+                    }
+                }
+
+                title_pars.entrySet().stream()
+                        .sorted((o1, o2) -> {
+                            int a = -o1.getValue().compareTo(o2.getValue());
+                            if (a == 0) {
+                                a = o1.getKey().compareTo(o2.getKey());
+                            }
+                            return a;
+                        })
+                        .limit(topK)
+                        .forEach(stringDoubleEntry -> answer.add(stringDoubleEntry.getKey()));
+                break;
+            default:
+                break;
+        }
+        return answer;
     }
 
     //5
