@@ -10,6 +10,7 @@ import java.util.*;
 import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -139,8 +140,8 @@ public class OnlineCoursesAnalyzer {
                 Map<String, Double> title_hours = new HashMap<>();
                 for (Course course : courses) {
                     if (title_hours.containsKey(course.title)) {
-                        if(course.totalHours>title_hours.get(course.title)){
-                            title_hours.put(course.title,course.totalHours);
+                        if (course.totalHours > title_hours.get(course.title)) {
+                            title_hours.put(course.title, course.totalHours);
                         }
                     } else {
                         title_hours.put(course.title, course.totalHours);
@@ -162,8 +163,8 @@ public class OnlineCoursesAnalyzer {
                 Map<String, Integer> title_pars = new HashMap<>();
                 for (Course course : courses) {
                     if (title_pars.containsKey(course.title)) {
-                        if(course.participants>title_pars.get(course.title)){
-                            title_pars.put(course.title,course.participants);
+                        if (course.participants > title_pars.get(course.title)) {
+                            title_pars.put(course.title, course.participants);
                         }
                     } else {
                         title_pars.put(course.title, course.participants);
@@ -189,15 +190,188 @@ public class OnlineCoursesAnalyzer {
 
     //5
     public List<String> searchCourses(String courseSubject, double percentAudited, double totalCourseHours) {
-        return null;
+        List<String> answer = new ArrayList<>();
+        List<Course> cou = new ArrayList<>(courses);
+        cou.stream()
+                .filter(course ->
+                        course.totalHours <= totalCourseHours &&
+                                course.percentAudited >= percentAudited)
+                .filter(course -> {
+                    String a = course.subject.toLowerCase(Locale.ROOT);
+                    String b = courseSubject.toLowerCase(Locale.ROOT);
+                    return a.contains(b);
+                })
+
+                .sorted(Comparator.comparing(o -> o.title))
+                .forEach(course -> {
+                    if (!answer.contains(course.title)) {
+                        answer.add(course.title);
+                    }
+                });
+        return answer;
     }
 
     //6
     public List<String> recommendCourses(int age, int gender, int isBachelorOrHigher) {
-        return null;
+//        List<String>answer = new ArrayList<>();
+//        List<Course>answer = new ArrayList<>();
+//        Map<String, Integer> number_times = new HashMap<>();
+//        for(int i =0;i<courses.size();i++){
+//            if(number_times.containsKey(courses.get(i).number)){
+//                number_times.put(courses.get(i).number,number_times.get(courses.get(i).number)+1);
+//            }else {
+//                number_times.put(courses.get(i).number,1);
+//            }
+//        }
+//
+//        Map<String, Double> ageHelper = new HashMap<>();
+//        Map<String ,Double> genderHelper = new HashMap<>();
+//        Map<String, Double> DegreeHelper = new HashMap<>();
+//        for(Course course:courses){
+//            if(ageHelper.containsKey(course.number)){
+//                ageHelper.put(course.number,course.medianAge+ageHelper.get(course.number));
+//            }else {
+//                ageHelper.put(course.number,course.medianAge);
+//            }
+//
+//            if(ageHelper.containsKey(course.number)){
+//                genderHelper.put(course.number,course.percentMale+ageHelper.get(course.number));
+//            }else {
+//                genderHelper.put(course.number,course.percentMale);
+//            }
+//
+//            if(ageHelper.containsKey(course.number)){
+//                DegreeHelper.put(course.number,course.percentDegree+ageHelper.get(course.number));
+//            }else {
+//                DegreeHelper.put(course.number,course.percentDegree);
+//            }
+//        }
+//
+//        for(Course course:courses){
+//            if(ageHelper.containsKey(course.number)){
+//                ageHelper.put(course.number, ageHelper.get(course.number)/number_times.get(course.title));
+//            }
+//            if(genderHelper.containsKey(course.number)){
+//                genderHelper.put(course.number, genderHelper.get(course.number)/number_times.get(course.title));
+//            }
+//            if(DegreeHelper.containsKey(course.number)){
+//                DegreeHelper.put(course.number, DegreeHelper.get(course.number)/number_times.get(course.title));
+//            }
+//        }
+//
+//
+//        courses.stream()
+//                .sorted(new Comparator<Course>() {
+//                    @Override
+//                    public int compare(Course o1, Course o2) {
+//                        double a = calculate(age,gender,isBachelorOrHigher,ageHelper.get(o1.number),genderHelper.get(o1.number),DegreeHelper.get(o1.number));
+//                        double b = calculate(age,gender,isBachelorOrHigher,ageHelper.get(o2.number),genderHelper.get(o2.number),DegreeHelper.get(o2.number));
+//                        int c ;
+//                        if(a>b){
+//                            c = 1;
+//                        }else if(a<b){
+//                             c =-1;
+//                        }else {
+//                            c = o1.title.compareTo(o2.title);
+//                        }
+//                        return c;
+//                    }
+//                })
+//                .forEach(new Consumer<Course>() {
+//                    @Override
+//                    public void accept(Course course) {
+//                        answer.add(course);
+//                    }
+//                })
+        Map<String, Double> ave_age = new HashMap<>();
+        Map<String, Double> ave_male = new HashMap<>();
+        Map<String, Double> ave_bach = new HashMap<>();
+        Map<String, Integer> counter = new HashMap<>();
+
+        //counter: to record the times of course.number
+        for (Course course : courses) {
+            if (counter.containsKey(course.number)) {
+                counter.put(course.number, counter.get(course.number) + 1);
+            } else {
+                counter.put(course.number, 1);
+            }
+        }
+
+        //plus 3 different data
+        for (Course course : courses) {
+            if (ave_age.containsKey(course.number)) {
+                ave_age.put(course.number, ave_age.get(course.number) + course.medianAge);
+            } else {
+                ave_age.put(course.number, course.medianAge);
+            }
+
+            if (ave_male.containsKey(course.number)) {
+                ave_male.put(course.number, ave_male.get(course.number) + course.percentMale);
+            } else {
+                ave_male.put(course.number, course.percentMale);
+            }
+
+            if (ave_bach.containsKey(course.number)) {
+                ave_bach.put(course.number, ave_bach.get(course.number) + course.percentDegree);
+            } else {
+                ave_bach.put(course.number, course.percentDegree);
+            }
+        }
+
+        for(Map.Entry<String,Integer>entry:counter.entrySet()){
+            ave_age.put(entry.getKey(),ave_age.get(entry.getKey())/entry.getValue());
+            ave_male.put(entry.getKey(),ave_male.get(entry.getKey())/entry.getValue());
+            ave_bach.put(entry.getKey(),ave_bach.get(entry.getKey())/entry.getValue());
+        }
+
+        List<Course> answer = new ArrayList<>();
+        courses.stream()
+                .sorted((o1, o2) -> {
+                    double a1 = ave_age.get(o1.number), b1 = ave_male.get(o1.number), c1 = ave_bach.get(o1.number);
+                    double a2 = ave_age.get(o2.number), b2 = ave_male.get(o2.number), c2 = ave_bach.get(o2.number);
+                    double x = calculate(age, gender, isBachelorOrHigher, a1, b1, c1);
+                    double y = calculate(age, gender, isBachelorOrHigher, a2, b2, c2);
+                    if (x > y) {
+                        return 1;
+                    } else if (x < y) {
+                        return -1;
+                    } else {
+                        return o1.title.compareTo(o2.title);
+                    }
+                })
+                .forEach(course -> {
+                    int conta = conta(answer, course);
+                    if (conta != -1) {
+                        if (answer.get(conta).launchDate.before(course.launchDate)) {
+                            answer.set(conta, course);
+                        }
+                    } else {
+                        answer.add(course);
+                    }
+                });
+        List<String>k =new ArrayList<>();
+        Set<String>s=new HashSet<>();
+        for(Course c:answer){
+            if(s.add(c.title))k.add(c.title);
+        }
+        return k.subList(0,10);
+
+
+
+    }
+    public int conta(List<Course>answer,Course course){
+        for(int i =0;i<answer.size();i++){
+            if(answer.get(i).number.equals(course.number))
+                return i;
+        }
+        return -1;
     }
 
+    public double calculate(int age, int gender, int isB, double aveAge, double aveGender, double aveB) {
+        return (age - aveAge) * (age - aveAge) + (gender * 100 - aveGender) * (gender * 100 - aveGender) + (isB * 100 - aveB) * (isB * 100 - aveB);
+    }
 }
+
 
 class Course {
     String institution;
